@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using GObject;
 
 namespace Pinta.Core;
@@ -54,7 +55,33 @@ public class Command
 		get => Action.Enabled;
 		set => Action.Enabled = value;
 	}
-	public ImmutableArray<string> Shortcuts { get; }
+	public ImmutableArray<string> DefaultShortcuts { get; }
+	public ImmutableArray<string> Shortcuts {
+		get {
+			if (PintaCore.Settings == null)
+				return DefaultShortcuts;
+
+			string overrideKey = SettingNames.CommandShortcut (Name);
+			string overrideValue = PintaCore.Settings.GetSetting (overrideKey, string.Empty);
+
+			if (!string.IsNullOrEmpty (overrideValue)) {
+				return [.. overrideValue.Split (',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+			}
+			return DefaultShortcuts;
+		}
+		set {
+			// Updating the setting instantly handles the underlying storage.
+			// The property itself is dynamic, so we just write to Settings.
+			string overrideKey = SettingNames.CommandShortcut (Name);
+			
+			// If setting it back to defaults, clear the override.
+			if (Enumerable.SequenceEqual (value, DefaultShortcuts)) {
+				PintaCore.Settings.PutSetting(overrideKey, string.Empty);
+			} else {
+				PintaCore.Settings.PutSetting(overrideKey, string.Join(",", value));
+			}
+		}
+	}
 
 	public Command (
 		string name,
@@ -75,7 +102,7 @@ public class Command
 		Tooltip = tooltip;
 		IconName = icon_name;
 
-		Shortcuts =
+		DefaultShortcuts =
 			shortcuts is null
 			? []
 			: [.. shortcuts];

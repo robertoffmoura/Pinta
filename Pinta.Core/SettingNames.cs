@@ -1,6 +1,6 @@
 namespace Pinta.Core;
 
-internal static class SettingNames
+public static class SettingNames
 {
 	internal const string DEFAULT_IMAGE_TYPE = "default-image-type";
 
@@ -25,4 +25,10 @@ internal static class SettingNames
 
 	internal static string ToolAlphaBlend (BaseTool tool)
 		=> $"{tool.GetType ().Name.ToLowerInvariant ()}-alpha-blend";
+
+	public static string CommandShortcut (string commandName)
+		=> $"shortcut-command-{commandName.ToLowerInvariant ()}";
+
+	public static string ToolShortcut (BaseTool tool)
+		 => $"shortcut-tool-{tool.GetType ().Name.ToLowerInvariant ()}";
 }

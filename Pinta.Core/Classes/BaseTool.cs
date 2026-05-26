@@ -114,12 +114,30 @@ public abstract class BaseTool
 		=> [];
 
 	/// <summary>
-	/// The shortcut key used to activate this tool in the toolbox.
+	/// The default shortcut key used to activate this tool in the toolbox.
 	/// Return Gdk.Key.Invalid for no shortcut key.
 	/// </summary>
-	public virtual Gdk.Key ShortcutKey
-		=> Gdk.Key.Invalid;
+	public virtual Gdk.Key DefaultShortcutKey
+	        => Gdk.Key.Invalid;
 
+	/// <summary>
+	/// The effective shortcut key used to activate this tool, checking user settings for overrides.
+	/// </summary>
+	public Gdk.Key ShortcutKey {
+		get {
+			if (PintaCore.Settings == null)
+				return DefaultShortcutKey;
+
+			string overrideKey = SettingNames.ToolShortcut (this);
+			string overrideValue = PintaCore.Settings.GetSetting (overrideKey, string.Empty);
+
+			if (!string.IsNullOrEmpty (overrideValue) && uint.TryParse (overrideValue, out uint keyval)) {
+				return new Gdk.Key (keyval);
+			}
+
+			return DefaultShortcutKey;
+		}
+	}
 	/// <summary>
 	/// Affects the order of the tool in the toolbox. Lower numbers will appear first.
 	/// </summary>

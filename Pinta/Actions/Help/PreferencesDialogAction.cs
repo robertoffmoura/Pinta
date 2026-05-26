@@ -79,6 +79,7 @@ internal sealed class PreferencesDialogAction : IActionHandler
 			foreach (var cmd in validCommands) {
 				Adw.ActionRow row = Adw.ActionRow.New ();
 				row.Title = cmd.Label.Replace ("_", "");
+				row.Activatable = true;
 
 				if (cmd.IconName != null) {
 					row.IconName = cmd.IconName;
@@ -87,6 +88,35 @@ internal sealed class PreferencesDialogAction : IActionHandler
 				string formattedShortcut = FormatShortcut (cmd.Shortcuts[0]);
 				Gtk.ShortcutLabel shortcutLabel = Gtk.ShortcutLabel.New (formattedShortcut);
 				row.AddSuffix (shortcutLabel);
+
+				row.OnActivated += async (o, e) => {
+					var editDialog = new ShortcutEditDialog (dialog, row.Title, formattedShortcut);
+					string response = await editDialog.RunAsync ();
+
+					string settingKey = Pinta.Core.SettingNames.CommandShortcut (cmd.Name);
+
+					if (response == "save" && editDialog.ResultAccelerator != null) {
+						// Save the new override
+						cmd.Shortcuts = [editDialog.ResultAccelerator];
+
+						// Update UI
+						shortcutLabel.Accelerator = FormatShortcut (editDialog.ResultAccelerator);
+
+						// Tell GTK to update the live accelerator routing
+						var app = PintaCore.Chrome.Application;
+						app.SetAccelsForAction (cmd.FullName, [editDialog.ResultAccelerator.Replace("<Primary>", SystemManager.GetOperatingSystem() == OS.Mac ? "<Meta>" : "<Control>")]);
+
+					} else if (response == "reset") {
+						// Revert to defaults (the setter handles removing the override from Settings)
+						cmd.Shortcuts = cmd.DefaultShortcuts;
+						shortcutLabel.Accelerator = FormatShortcut (cmd.Shortcuts[0]);
+
+						// Tell GTK to restore the default accelerator
+						var app = PintaCore.Chrome.Application;
+						app.SetAccelsForAction (cmd.FullName, [cmd.Shortcuts[0].Replace("<Primary>", SystemManager.GetOperatingSystem() == OS.Mac ? "<Meta>" : "<Control>")]);
+					}
+				};
+
 				group.Add (row);
 			}
 
@@ -106,10 +136,35 @@ internal sealed class PreferencesDialogAction : IActionHandler
 			Adw.ActionRow row = Adw.ActionRow.New ();
 			row.Title = tool.Name;
 			row.IconName = tool.Icon;
+			row.Activatable = true;
 
 			string keyName = ((char)tool.ShortcutKey.Value).ToString ().ToUpperInvariant ();
 			Gtk.ShortcutLabel shortcutLabel = Gtk.ShortcutLabel.New (keyName);
 			row.AddSuffix (shortcutLabel);
+			
+			row.OnActivated += async (o, e) => {
+				var editDialog = new ShortcutEditDialog (dialog, row.Title, keyName);
+				string response = await editDialog.RunAsync ();
+
+				string settingKey = Pinta.Core.SettingNames.ToolShortcut (tool);
+
+				if (response == "save" && editDialog.ResultKeyval.HasValue) {
+					// Tools only use simple keys, not complex accelerators. Just save the uint.
+					PintaCore.Settings.PutSetting (settingKey, editDialog.ResultKeyval.Value.ToString());
+
+					// Update UI instantly
+					string newKeyName = ((char)editDialog.ResultKeyval.Value).ToString ().ToUpperInvariant ();
+					shortcutLabel.Accelerator = newKeyName;
+
+				} else if (response == "reset") {
+					PintaCore.Settings.PutSetting (settingKey, string.Empty);
+
+					// Revert to default
+					string defaultKeyName = ((char)tool.DefaultShortcutKey.Value).ToString ().ToUpperInvariant ();
+					shortcutLabel.Accelerator = defaultKeyName;
+				}
+			};
+
 			toolShortcutsGroup.Add (row);
 		}
 

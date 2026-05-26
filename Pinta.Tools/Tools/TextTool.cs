@@ -85,7 +85,7 @@ public sealed class TextTool : BaseTool
 	public override string Icon
 		=> Pinta.Resources.Icons.ToolText;
 
-	public override Gdk.Key ShortcutKey
+	public override Gdk.Key DefaultShortcutKey
 		=> new (Gdk.Constants.KEY_T);
 
 	public override int Priority

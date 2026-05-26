@@ -62,7 +62,7 @@ public sealed class GradientTool : BaseTool
 	public override string StatusBarText => Translations.GetString ("Click and drag to draw gradient from primary to secondary color." +
 									"\nRight click to reverse." +
 									"\nClick on a control point and drag to move it.");
-	public override Gdk.Key ShortcutKey => new (Gdk.Constants.KEY_G);
+	public override Gdk.Key DefaultShortcutKey => new (Gdk.Constants.KEY_G);
 	public override Gdk.Cursor DefaultCursor => Gdk.Cursor.NewFromTexture (Resources.GetIcon ("Cursor.Gradient.png"), 9, 18, null);
 	public override int Priority => 31;
 	protected override bool ShowAlphaBlendingButton => true;
